@@ -19,7 +19,7 @@ inputs:
       mirrors them into the path folder of your workspace. The ignore input is
       not applied in pull mode. Nothing is committed or pushed to your
       repository in pull mode; pair it with a PR-creating action like
-      peter-evans/create-pull-request.
+      step-security/create-pull-request.
     required: true
     default: push
   strategy:
