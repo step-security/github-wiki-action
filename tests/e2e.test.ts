@@ -29,7 +29,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CLI_PATH = join(ROOT, "cli.ts");
 
 const REPO = Deno.env.get("GITHUB_REPOSITORY") ??
-  "Andrew-Chen-Wang/github-wiki-action";
+  "step-security/github-wiki-action";
 const SHA = Deno.env.get("GITHUB_SHA") ?? gitSync(ROOT, "rev-parse", "HEAD");
 const BLOB_BASE = `https://github.com/${REPO}/blob/${SHA}`;
 const WIKI_BASE = `https://github.com/${REPO}/wiki`;

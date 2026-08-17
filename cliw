@@ -1,5 +1,6 @@
 #!/bin/sh
 # Copyright 2023 Jacob Hummer
+# Copyright 2026 StepSecurity
 # SPDX-License-Identifier: Apache-2.0
 # Based on https://github.com/jcbhmr/deno_wrapper
 set -e

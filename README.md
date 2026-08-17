@@ -3,6 +3,7 @@
 <!--
 Copyright 2023 Andrew Chen Wang
 Copyright 2023 Jacob Hummer
+Copyright 2026 StepSecurity
 SPDX-License-Identifier: Apache-2.0
 -->
 
@@ -201,7 +202,7 @@ jobs:
       - uses: step-security/github-wiki-action@v5
         with:
           direction: pull
-      - uses: peter-evans/create-pull-request@v8
+      - uses: step-security/create-pull-request@v8
         with:
           branch: sync-wiki
           title: Sync wiki edits back into wiki/
@@ -242,25 +243,9 @@ jobs:
           path: .
 ```
 
-## Development
-
-![Deno](https://img.shields.io/static/v1?style=for-the-badge&message=Deno&color=000000&logo=Deno&logoColor=FFFFFF&label=)
-![GitHub Actions](https://img.shields.io/static/v1?style=for-the-badge&message=GitHub+Actions&color=2088FF&logo=GitHub+Actions&logoColor=FFFFFF&label=)
-
-This GitHub Action uses a self-downloaded version of Deno. See `cliw` for the
-`cli.ts` wrapper script that downloads the Deno binary and runs the TypeScript
-code. The main script itself is ~100 lines of code, so it's not too bad.
-
-ℹ Because the version of Deno is _pinned_, it's recommended to every-so-often
-bump it to the latest version.
-
-To test the action, open a PR! The `test-action.yml` workflow will run the code
-with `dry-run: true` as well as a real run! Yes, this does get tedious swapping
-between your IDE and the PR, but it's the easiest way to test the action.
-
 <!-- prettier-ignore-start -->
 [Decathlon/wiki-page-creator-action#11]: https://github.com/Decathlon/wiki-page-creator-action/issues/11
-[create-pull-request]: https://github.com/peter-evans/create-pull-request
+[create-pull-request]: https://github.com/step-security/create-pull-request
 [supported markup languages]: https://github.com/github/markup#markups
 [PAT]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
 <!-- prettier-ignore-end -->
