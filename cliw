@@ -1,0 +1,83 @@
+#!/bin/sh
+# Copyright 2023 Jacob Hummer
+# Copyright 2026 StepSecurity
+# SPDX-License-Identifier: Apache-2.0
+# Based on https://github.com/jcbhmr/deno_wrapper
+set -e
+# https://stackoverflow.com/a/29835459
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+deno_dir="$script_dir/.deno"
+
+DENO_VERSION="v2.8.3"
+
+if [ ! -d "$deno_dir" ]; then
+  os=$(uname -s)
+  arch=$(uname -m)
+
+  case "$os" in
+    Linux)
+      case "$arch" in
+        x86_64)  target="x86_64-unknown-linux-gnu";  expected_sha="30455b845ffa6082209c3590269c910ad3b7efdf28c9879afd4006c47ae54197" ;;
+        aarch64) target="aarch64-unknown-linux-gnu"; expected_sha="d4589cc1ffcbf1995c92a0127d932aaf832ac70cfdcc6d5b7bf38043cf303575" ;;
+        *)       echo "Unsupported Linux architecture: $arch" >&2; exit 1 ;;
+      esac
+      deno_bin="deno"
+      ;;
+    Darwin)
+      case "$arch" in
+        x86_64) target="x86_64-apple-darwin";  expected_sha="4254ec12123cfcf88b87703d7acf092a1ea024bdf9be8dd3cd9d4474761cb74e" ;;
+        arm64)  target="aarch64-apple-darwin"; expected_sha="88b350be928fdba0e5d8142ff7c101a17133426371e3cf5ed0e0f74e62476f6c" ;;
+        *)      echo "Unsupported macOS architecture: $arch" >&2; exit 1 ;;
+      esac
+      deno_bin="deno"
+      ;;
+    MINGW*|MSYS*|CYGWIN*)
+      case "$arch" in
+        x86_64)  target="x86_64-pc-windows-msvc";  expected_sha="7fdd1f42e6b0855421ecf27bb406e2492ade1087c85e30ebf0deab6280ea743c" ;;
+        aarch64) target="aarch64-pc-windows-msvc"; expected_sha="243f478ac577ade1bbd980ecf510607a10ed8cc977b462083ada48e5f6580de1" ;;
+        *)       echo "Unsupported Windows architecture: $arch" >&2; exit 1 ;;
+      esac
+      deno_bin="deno.exe"
+      ;;
+    *)
+      echo "Unsupported OS: $os" >&2
+      exit 1
+      ;;
+  esac
+
+  zip_name="deno-${target}.zip"
+  download_url="https://github.com/denoland/deno/releases/download/${DENO_VERSION}/${zip_name}"
+  tmp_zip=$(mktemp)
+
+  echo "Downloading Deno ${DENO_VERSION} for ${target}..."
+  curl -fsSL "$download_url" -o "$tmp_zip"
+
+  if command -v sha256sum > /dev/null 2>&1; then
+    actual_sha=$(sha256sum "$tmp_zip" | awk '{print $1}')
+  elif command -v shasum > /dev/null 2>&1; then
+    actual_sha=$(shasum -a 256 "$tmp_zip" | awk '{print $1}')
+  else
+    actual_sha=""
+  fi
+
+  if [ -z "$actual_sha" ]; then
+    echo "WARNING: No SHA256 tool found (sha256sum/shasum); skipping checksum verification." >&2
+  elif [ "$actual_sha" != "$expected_sha" ]; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >&2
+    echo "WARNING: SHA256 CHECKSUM MISMATCH for Deno ${DENO_VERSION}/${zip_name}" >&2
+    echo "  Expected: ${expected_sha}" >&2
+    echo "  Got:      ${actual_sha}" >&2
+    echo "  The downloaded binary may be tampered with. Proceeding with caution." >&2
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >&2
+  fi
+
+  mkdir -p "$deno_dir/bin"
+  unzip -o "$tmp_zip" "$deno_bin" -d "$deno_dir/bin"
+  rm -f "$tmp_zip"
+  [ "$deno_bin" = "deno" ] && chmod +x "$deno_dir/bin/deno"
+fi
+
+export DENO_INSTALL=$deno_dir
+export PATH="$DENO_INSTALL/bin:$PATH"
+
+exec "$script_dir/cli.ts" "$@"

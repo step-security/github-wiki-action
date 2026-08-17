@@ -1,0 +1,114 @@
+# Copyright 2023 Jacob Hummer
+# Copyright 2026 StepSecurity
+# SPDX-License-Identifier: Apache-2.0
+name: Test action
+on:
+  push:
+    branches: "main"
+    paths-ignore:
+      - .gitignore
+      - .gitattributes
+      - LICENSE
+      - README.md
+      - .github/**
+      - "!.github/workflows/test-action.yml"
+  pull_request:
+    paths-ignore:
+      - .gitignore
+      - .gitattributes
+      - LICENSE
+      - README.md
+      - .github/**
+      - "!.github/workflows/test-action.yml"
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  # Integration tests: run cli.ts against local file:// wiki remotes and
+  # verify the exact resulting wiki contents (adds, deletes, nested syncs,
+  # initial setup, preprocessing). Uses the same Deno version that cliw pins.
+  test-cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ github.actor == 'dependabot[bot]' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.8.3
+      - run: deno test -A tests/cli.test.ts
+  test-action-clone-dry-run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ github.actor == 'dependabot[bot]' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          strategy: clone
+          dry-run: true
+  test-action-init-dry-run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          strategy: init
+          dry-run: true
+  test-action-clone-dry-run-no-empty:
+    # Expects no commit (unless the wiki test files are changed).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          strategy: clone
+          dry-run: true
+          disable-empty-commits: true
+  test-action-init-dry-run-no-empty:
+    # Expects a commit either way as the init strategy creates an orphan branch.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ github.actor == 'dependabot[bot]' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          strategy: init
+          dry-run: true
+          disable-empty-commits: true
+  test-e2e:
+    # Live end-to-end tests (tests/e2e.test.ts): pushes wiki/ to this
+    # repository's actual wiki, verifies the published pages over HTTP
+    # (every Home page link must resolve on github.com), then pulls the
+    # wiki back and verifies the inverse transforms. Skipped for fork PRs,
+    # which have a read-only token.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    concurrency: ${{ github.workflow }}-real
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.8.3
+      - run: deno test -A tests/e2e.test.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
